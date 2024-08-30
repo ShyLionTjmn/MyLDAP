@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Basename;
+use lib dirname (__FILE__);
+use MyLDAP;
+use Encode::Locale qw/decode_argv/;
+
+decode_argv(Encode::FB_CROAK);
+
+
+my $LDAP_HOST='10.10.10.10';
+my $LDAP_PROTO='ldaps';
+my $LDAP_USER='svc-ldap-readonly';
+my $LDAP_PASS='verystrongpassword';
+
+my $opt_b='dc=corp,dc=int';
+my $opt_s="subtree";
+
+binmode(STDIN, ":utf8");
+binmode(STDOUT, ":utf8");
+binmode(STDERR, ":utf8");
+
+my $USAGE="USAGE: $0 [-b base] [-s (subtree|base|one|children)] filter attrs ...\n";
+
+if(! scalar(@ARGV)) {
+  print(STDERR $USAGE);
+  exit 1;
+};
+
+while(scalar(@ARGV) && $ARGV[0] =~ /^-/) {
+  my $opt=shift;
+  if($opt eq "-b") {
+    if(!scalar(@ARGV)) {
+      print(STDERR $USAGE);
+      exit 1;
+    };
+    $opt_b=shift;
+  } elsif($opt eq "-s") {
+    if(!scalar(@ARGV)) {
+      print(STDERR $USAGE);
+      exit 1;
+    };
+    $opt_s=shift;
+  } else {
+    print(STDERR $USAGE);
+    exit 1;
+  };
+};
+
+if(! scalar(@ARGV)) {
+  print(STDERR $USAGE);
+  exit 1;
+};
+
+my $filter=shift(@ARGV);
+if($filter !~ /^\(.+\)$/) {
+  $filter="($filter)";
+};
+
+my %args = (
+  "host" => $LDAP_HOST,
+  "proto" => $LDAP_PROTO,
+  "user" => $LDAP_USER,
+  "pass" => $LDAP_PASS,
+  "opt_b" => $opt_b,
+  "opt_s" => $opt_s,
+  "filter" => $filter,
+  "attrs" => \@ARGV
+);
+
+myldapsearch(\%args);
